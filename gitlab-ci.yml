@@ -1,0 +1,84 @@
+stages:
+  - configure
+  - test
+  - deploy
+
+configure:
+  stage: configure
+  script:
+    - |
+      if [ "$CI_PIPELINE_SOURCE" == "merge_request_event" ]; then
+        TARGET_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+        if [ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "master" ]; then
+          HELMFILE_ENVIRONMENT=production
+        else
+          HELMFILE_ENVIRONMENT=development
+        fi
+      else
+        TARGET_BRANCH="$CI_COMMIT_REF_NAME"
+        if [ "$CI_COMMIT_REF_NAME" == "master" ]; then
+          HELMFILE_ENVIRONMENT=production
+        else
+          HELMFILE_ENVIRONMENT=development
+        fi
+      fi;
+
+      touch .env.ci
+
+      echo "HELMFILE_ENVIRONMENT=$HELMFILE_ENVIRONMENT" >> .env.ci
+      echo "TARGET_BRANCH=$TARGET_BRANCH" >> .env.ci
+  artifacts:
+    expire_in: '10 mins'
+    reports:
+      dotenv: .env.ci
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'master' || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'dev')
+    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_PIPELINE_SOURCE == "pipeline" && $CI_PROJECT_PATH != $CI_PARENT_PIPELINE_SOURCE_PROJECT_PATH'
+
+test:
+  stage: test
+  dependencies:
+    - configure
+  needs:
+    - job: configure
+      artifacts: true
+  cache:
+    key: env_data
+  variables:
+    GITLAB_PROJECT_SECRET_ID: ${CI_PROJECT_ID}
+    FULL_BRANCH: ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}
+    TF_IN_AUTOMATION: "true"
+    GITLAB_PROJECT_SECRET_USER: 'gitlab-ci-token'
+    GITLAB_PROJECT_SECRET_API_TOKEN: ${CI_JOB_TOKEN}
+  script:
+    - ./tools/external/update-helm-plugins.sh
+    - ./render.sh $HELMFILE_ENVIRONMENT
+    - ./tools/gitlab/terraform-convert-plan-for-gitlab.sh ./rendered/tfplan ./rendered/terraform_plan.json
+  artifacts:
+    reports:
+      terraform: ./rendered/terraform_plan.json
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+deploy:
+  stage: deploy
+  dependencies:
+    - configure
+  needs:
+    - job: configure
+      artifacts: true
+    - job: test
+      optional: true
+  variables:
+    GITLAB_PROJECT_SECRET_ID: ${CI_PROJECT_ID}
+    FULL_BRANCH: ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}
+    TF_IN_AUTOMATION: "true"
+    GITLAB_PROJECT_SECRET_USER: 'gitlab-ci-token'
+    GITLAB_PROJECT_SECRET_API_TOKEN: ${CI_JOB_TOKEN}
+  script:
+    - ./tools/external/update-helm-plugins.sh
+    - ./update.sh $HELMFILE_ENVIRONMENT
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_PIPELINE_SOURCE == "pipeline" && $CI_PROJECT_PATH != $CI_PARENT_PIPELINE_SOURCE_PROJECT_PATH'
