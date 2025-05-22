@@ -1,0 +1,9 @@
+# List database users. Each are objects with properties name, password and database
+users: []
+
+# Server name
+name: mongo-server
+
+# Namespace where to put everything
+namespace: mongodb
+

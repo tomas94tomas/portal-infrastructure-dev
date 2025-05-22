@@ -1,0 +1,35 @@
+hostnames:
+  breach:
+    socket: socket.breach.gg
+    frontend: breach.gg
+    backend: api.breach.gg
+  admin:
+    traefik: traefik.admin.breach.gg
+  discord_steam: steam.breach.gg
+
+container:
+  tag: latest
+
+env:
+  frontend:
+    DISABLE_SCRAPPING: 0
+    OAUTH_PREPEND_WWW: 1
+    STEAM_PREPEND_WWW: 1
+  backend:
+    DISABLE_SCRAPPING: 0
+    FS_IMAGES_AWS_BUCKET: "prod-breachgg-portal"
+    FS_FILES_AWS_BUCKET: "prod-breachgg-portal"
+    FS_SITEMAPS_AWS_BUCKET: "prod-breachgg-portal"
+
+keyVault:
+  prefix: PROGG
+
+kubernetes:
+  prefix: prod
+
+loadBalancer:
+  ipName: "progg-portal-kubernetes-ip"
+  resourceGroup: Breach-Backgroud
+  dnsName: progg-portal-kubernetes
+
+

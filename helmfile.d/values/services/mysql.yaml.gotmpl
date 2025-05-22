@@ -1,0 +1,24 @@
+mysql:
+  auth:
+    rootPassword: {{
+      (printf "rt$%s-%s"
+        ((printf "ref+envsubst://%s_SQL_DB_USER" .Values.keyVault.prefix) | fetchSecretValue)
+        ((printf "ref+envsubst://%s_SQL_DB_PASS" .Values.keyVault.prefix) | fetchSecretValue)
+      ) | trunc 20
+    }}
+
+    replicationUser: replicator
+    replicationPassword: {{
+      (printf "rpl&%s=%s"
+      ((printf "ref+envsubst://%s_SQL_DB_USER" .Values.keyVault.prefix) | fetchSecretValue)
+      ((printf "ref+envsubst://%s_SQL_DB_PASS" .Values.keyVault.prefix) | fetchSecretValue)
+      ) | trunc 20
+    }}
+
+    database: ref+envsubst://$SQL_DB_NAME
+    username: ref+envsubst://${{ .Values.keyVault.prefix }}_SQL_DB_USER
+    password: ref+envsubst://${{ .Values.keyVault.prefix }}_SQL_DB_PASS
+
+  slave:
+    replicaCount: 1
+

@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: frontend-not-found
+spec:
+  redirectRegex:
+    regex: "^(.*)$"
+    replacement: "https://{{ .Values.hostnames.frontend }}/error?code=404&url=$1"
+    permanent: true

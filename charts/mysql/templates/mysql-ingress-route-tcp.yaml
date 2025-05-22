@@ -1,0 +1,14 @@
+#file: noinspection KubernetesUnknownResourcesInspection
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: mysql-svc
+spec:
+  entryPoints:
+    - mysql
+  routes:
+    - match: HostSNI(`*`)
+      services:
+        - name: mysql
+          namespace: {{ .Release.Namespace }}
+          port: 3306

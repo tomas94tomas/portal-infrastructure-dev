@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-urls
+  namespace: {{ .Release.Namespace }}
+data:
+  master-url: '{{ (printf "%s.%s.svc.cluster.local" .Release.Name .Release.Namespace ) }}'

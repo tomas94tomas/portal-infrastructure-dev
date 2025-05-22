@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: backend
+  name: backend
+  annotations:
+    traefik.ingress.kubernetes.io/forwarding-headers: "X-Real-IP"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: backend
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        io.kompose.network/system: "true"
+        io.kompose.service: backend
+    spec:
+      containers:
+        - image: "{{ include "docker.imageUrl" (dict "container" .Values.container "type" "backend") }}"
+          imagePullPolicy: Always
+          name: backend
+          ports:
+            - containerPort: 80
+          resources: {}
+          envFrom:
+            - secretRef:
+                name: backend-env
+          env:
+            # This is needed to detect when backend-env changed
+            - name: BACKEND_ENV_SECRET_HASH
+              value: {{ include (print $.Template.BasePath "/backend-env-secret.yaml") . | sha256sum }}
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: docker-registry-auth-data

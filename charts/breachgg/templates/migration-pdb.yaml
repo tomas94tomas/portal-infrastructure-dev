@@ -1,0 +1,10 @@
+# This policy means that only migration job can be run at once
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: migration-pdb
+spec:
+  selector:
+    matchLabels:
+      breachgg.jobs.type: migration
+  maxUnavailable: 1

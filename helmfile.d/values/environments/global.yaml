@@ -1,0 +1,235 @@
+loadBalancer:
+  # ip for load balancer
+  ip:
+  # name of ip on azure that will be used
+  ipName:
+  # resource group for IP (usually it should be same as for kubernetes services on azure)
+  resourceGroup:
+
+hostnames:
+  breach:
+    socket: socket.playground.breach.gg
+    frontend: playground.breach.gg
+    backend: api.playground.breach.gg
+    cdn: cdn.breach.gg
+  admin:
+    traefik: traefik.admin.playground.breach.gg
+  discord_steam: steam.breach.gg
+
+container:
+  tag: dev
+  registries:
+    gitlab:
+      server: registry.gitlab.com
+      username_from_env: CONTAINER_REGISTRY_GITLAB_USERNAME
+      password_from_env: CONTAINER_REGISTRY_GITLAB_PASSWORD
+      email: support@breach.gg
+  # Defines short images names without tag or hash
+  images:
+    breachgg:
+      backend: registry.gitlab.com/breach-gg/portal/portal-backend/portal-nginx-and-php
+      frontend: registry.gitlab.com/breach-gg/portal/portal-frontend
+      cron: registry.gitlab.com/breach-gg/portal/portal-backend/portal-cron
+      queue: registry.gitlab.com/breach-gg/portal/portal-backend/portal-queue
+      socket: registry.gitlab.com/breach-gg/portal/portal-backend/portal-socket
+    matchmaker:
+      discord: registry.gitlab.com/breach-gg/matchmaker/discord-matchmaker
+    prerender:
+      prerender: registry.gitlab.com/breach-gg/portal/prerender-alpine
+
+keyVault:
+  prefix:
+
+certificate:
+  email: support@breach.gg
+  server: https://acme-v02.api.letsencrypt.org/directory
+
+env:
+  frontend:
+    DISABLE_SCRAPPING: 1
+    PUSHER_APP_CLUSTER: mt1
+    AUTORELOAD_DISABLED: false
+    CHECK_FOR_CIRCULAR_DEPENDENCIES: false
+    ENABLE_ANALYZER_FOR_BUILDS: false
+    MODE: spa
+    SOCIAL_DEFAULT_TITLE: "Breach.gg - A Social Platform for Gamers"
+    SOCIAL_DEFAULT_DESCRIPTION: "Connect with gamers, find teammates, organize gaming events, and discover the perfect gaming content all in one place. Join Breach.gg today!"
+    EXTRA_MAIN_MENU_ITEMS: |
+      - needs_auth: false
+        href: https://discord.gg/nkMqPXgU5h
+        label: Discord
+        icon: fa-brands fa-discord
+  backend:
+    APP_NAME: Breach.gg
+    APP_ENV: production
+    APP_DEBUG: false
+    GOOGLE_2FA_SECRET_HOLDER: breach.gg
+    LOG_CHANNEL: stack
+    LOG_DEPRECATIONS_CHANNEL: null
+    LOG_LEVEL: debug
+    DB_CONNECTION: mysql
+    DB_PORT: 3306
+    BROADCAST_DRIVER: pusher
+    CACHE_DRIVER: redis
+    FILESYSTEM_DRIVER: local
+    QUEUE_CONNECTION: redis
+    SESSION_DRIVER: file
+    SESSION_LIFETIME: 120
+    REDIS_CLIENT: predis
+    REDIS_PORT: 6379
+    REDIS_PREFIX: socket-server
+    MAIL_MAILER: mailersend
+    MAIL_PORT: 25
+    MAIL_ENCRYPTION: null
+    MAIL_FROM_ADDRESS: "no-reply@breach.gg"
+    MAIL_FROM_NAME: "Breach.gg No-Reply"
+    PUSHER_APP_CLUSTER: mt1
+    STEAM_API_KEY:
+    STEAM_LOGIN: /api/v1/auth/login
+    STEAM_RETURN: /api/v1/auth/steam
+    STEAM_TIMEOUT: 5
+    STEAM_PROFILE_METHOD: xml
+    STEAM_AFTER_AUTH_ROUTE: welcome
+    MAIL_SOCIALS_LINKEDIN_URL: https://www.linkedin.com/company/breach-gg/
+    MAIL_SOCIALS_INSTAGRAM_URL: https://www.instagram.com/breach_gg/
+    MAIL_SOCIALS_TWITTER_URL: https://twitter.com/Breach_portal
+    AZURE_CDN_IMAGE_CONTAINER: images
+    AZURE_CDN_FILES_CONTAINER: files
+    STEAM_PARTNER_API_KEY:
+    SYNC_STEAMS_FRIENDS_LIST_INTERVAL: 0
+    OPEN_AI_CHAT_MODEL: 'gpt-3.5-turbo'
+    DISABLE_SCRAPPING: 1
+    FS_IMAGES_AWS_ACCESS_KEY_ID: ref+envsubst://$TF_AWS_ACCESS_KEY_ID
+    FS_IMAGES_AWS_SECRET_ACCESS_KEY: ref+envsubst://$TF_AWS_SECRET_ACCESS_KEY
+    FS_IMAGES_AWS_DEFAULT_REGION: "eu-central-1"
+    FS_IMAGES_AWS_ENDPOINT: ~
+    FS_IMAGES_AWS_USE_PATH_STYLE_ENDPOINT: false
+    FS_IMAGES_ROOT: images
+    FS_FILES_AWS_ACCESS_KEY_ID: ref+envsubst://$TF_AWS_ACCESS_KEY_ID
+    FS_FILES_AWS_SECRET_ACCESS_KEY: ref+envsubst://$TF_AWS_SECRET_ACCESS_KEY
+    FS_FILES_AWS_DEFAULT_REGION: "eu-central-1"
+    FS_FILES_AWS_ENDPOINT: ~
+    FS_FILES_AWS_USE_PATH_STYLE_ENDPOINT: false
+    FS_FILES_ROOT: files
+    FS_SITEMAPS_AWS_ACCESS_KEY_ID: ref+envsubst://$TF_AWS_ACCESS_KEY_ID
+    FS_SITEMAPS_AWS_SECRET_ACCESS_KEY: ref+envsubst://$TF_AWS_SECRET_ACCESS_KEY
+    FS_SITEMAPS_AWS_DEFAULT_REGION: "eu-central-1"
+    FS_SITEMAPS_AWS_ENDPOINT: ~
+    FS_SITEMAPS_AWS_USE_PATH_STYLE_ENDPOINT: false
+    FS_SITEMAPS_ROOT: sitemaps
+    FS_SOUNDS_AWS_ACCESS_KEY_ID: ref+envsubst://$TF_AWS_ACCESS_KEY_ID
+    FS_SOUNDS_AWS_SECRET_ACCESS_KEY: ref+envsubst://$TF_AWS_SECRET_ACCESS_KEY
+    FS_SOUNDS_AWS_DEFAULT_REGION: "eu-central-1"
+    FS_SOUNDS_AWS_ENDPOINT: ~
+    FS_SOUNDS_AWS_USE_PATH_STYLE_ENDPOINT: false
+    FS_SOUNDS_ROOT: sounds
+
+persistence:
+  storageClass: gp2
+
+matchmaker:
+  enabled: true
+
+mongo:
+  server_name: mongo-server
+  namespace: mongodb
+
+elasticsearch:
+  server_name: elasticsearch
+  namespace: elasticsearch
+
+traefik:
+  access_log:
+    enabled: false
+
+redis:
+  server_name: redis-master
+  namespace: redis
+
+mysql:
+  server_name: mysql
+  namespace: mysql
+
+prerender:
+  namespace: prerender
+  server_name: prerender
+  skippedExtensions:
+    - js
+    - css
+    - xml
+    - less
+    - png
+    - jpg
+    - jpeg
+    - gif
+    - pdf
+    - doc
+    - txt
+    - ico
+    - rss
+    - zip
+    - mp3
+    - rar
+    - exe
+    - wmv
+    - doc
+    - avi
+    - ppt
+    - mpg
+    - mpeg
+    - tif
+    - wav
+    - mov
+    - psd
+    - ai
+    - xls
+    - mp4
+    - m4a
+    - swf
+    - dat
+    - dmg
+    - iso
+    - flv
+    - m4v
+    - torrent
+    - woff
+    - ttf
+    - svg
+    - webmanifest
+  userAgents:
+#    - "googlebot"
+    - "yahoo! slurp"
+    - "bingbot"
+    - "yandex"
+    - "baiduspider"
+    - "facebookexternalhit"
+    - "twitterbot"
+    - "rogerbot"
+    - "linkedinbot"
+    - "embedly"
+    - "quora link preview"
+    - "showyoubot"
+    - "outbrain"
+    - "pinterest/0."
+#    - "developers.google.com/+/web/snippet"
+    - "slackbot"
+    - "vkshare"
+    - "w3c_validator"
+    - "redditbot"
+    - "applebot"
+    - "whatsapp"
+    - "flipboard"
+    - "tumblr"
+    - "bitlybot"
+    - "skypeuripreview"
+    - "nuzzel"
+    - "discordbot"
+#   - "google page speed"
+    - "qwantify"
+    - "pinterestbot"
+    - "bitrix link preview"
+    - "xing-contenttabreceiver"
+    - "chrome-lighthouse"
+    - "telegrambot"
+    - "integration-test"
+#    - "google-inspectiontool"

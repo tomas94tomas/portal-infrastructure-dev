@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-urls
+  namespace: {{ .Release.Namespace }}
+data:
+  master-url: '{{ (printf "%s-master.%s.svc.cluster.local" .Release.Name .Release.Namespace ) }}'
+  replicas-url: '{{ (printf "%s-replicas.%s.svc.cluster.local" .Release.Name .Release.Namespace ) }}'

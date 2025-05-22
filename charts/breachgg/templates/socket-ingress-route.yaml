@@ -1,0 +1,21 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: socket
+  annotations:
+    cert-manager.io/issuer: "{{ .Values.certificate.issuerName }}"
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.hostnames.socket }}`)
+      kind: Rule
+      priority: 20
+      services:
+        - name: socket
+          port: 80
+  tls:
+    secretName: socket-crt
+    domains:
+      - main: "{{ .Values.hostnames.socket }}"

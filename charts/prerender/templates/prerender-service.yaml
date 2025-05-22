@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prerender
+  labels:
+    io.kompose.service: prerender
+spec:
+  selector:
+    io.kompose.service: prerender
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+      name: http

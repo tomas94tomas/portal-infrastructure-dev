@@ -1,0 +1,11 @@
+global:
+  rbac:
+    # Create required ClusterRoles and ClusterRoleBindings for cert-manager.
+    create: true
+    # Aggregate ClusterRoles to Kubernetes default user-facing roles. For more information, see [User-facing roles](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles)
+    aggregateClusterRoles: true
+
+# Install the cert-manager CRDs, it is recommended to not use Helm to manage
+# the CRDs.
+crds:
+  enabled: true

@@ -1,0 +1,39 @@
+hostnames:
+  breach:
+    socket: socket.playground.breach.gg
+    frontend: playground.breach.gg
+    backend: api.playground.breach.gg
+  admin:
+    traefik: traefik.admin.playground.breach.gg
+
+container:
+  tag: dev
+
+kubernetes:
+  prefix: dev
+
+loadBalancer:
+  ipName: "devgg-portal-kubernetes-ip"
+  resourceGroup: "dev-system_devgg-portal_northeurope-resource-group"
+  dnsName: devgg-portal-kubernetes
+
+env:
+  frontend:
+    DISABLE_SCRAPPING: 1
+    OAUTH_PREPEND_WWW: 0
+    STEAM_PREPEND_WWW: 0
+  backend:
+    DISABLE_SCRAPPING: 1
+    FS_IMAGES_AWS_BUCKET: "dev-breachgg-portal"
+    FS_FILES_AWS_BUCKET: "dev-breachgg-portal"
+    FS_SITEMAPS_AWS_BUCKET: "dev-breachgg-portal"
+
+keyVault:
+  prefix: DEV
+
+matchmaker:
+  enabled: false
+
+traefik:
+  access_log:
+    enabled: true

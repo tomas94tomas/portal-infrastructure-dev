@@ -1,0 +1,40 @@
+mysql:
+  ## @section MySQL common parameters
+  ##
+  ## @param architecture MySQL architecture (`standalone` or `replication`)
+  ##
+  architecture: standalone
+  ## MySQL Authentication parameters
+  ##
+  auth:
+    rootPassword: "{{ .Values.auth.rootPassword }}"
+    createDatabase: true
+    database: "{{ .Values.auth.default.database }}"
+    username: "{{ .Values.auth.default.username }}"
+    password: "{{ .Values.auth.default.password }}"
+    replicationUser: replicator
+    replicationPassword: "{{ .Values.auth.replication.password }}"
+    usePasswordFiles: false
+
+  ## @section MySQL Primary parameters
+  ##
+  primary:
+    name: primary
+    automountServiceAccountToken: false
+    ## https://dev.mysql.com/doc/dev/mysql-server/latest/mysqlx_protocol_xplugin.html
+    enableMySQLX: false
+
+  secondary:
+    name: secondary
+    replicaCount: 1
+    automountServiceAccountToken: false
+    ## https://dev.mysql.com/doc/dev/mysql-server/latest/mysqlx_protocol_xplugin.html
+    enableMySQLX: false
+
+  persistence:
+    enabled: true
+    storageClass: default
+    size: 20Gi
+
+  global:
+    storageClass: default

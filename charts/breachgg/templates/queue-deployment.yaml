@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: queue
+  name: queue
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      io.kompose.service: queue
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        io.kompose.network/system: "true"
+        io.kompose.service: queue
+    spec:
+      containers:
+        - image: "{{ include "docker.imageUrl" (dict "container" .Values.container "type" "queue") }}"
+          imagePullPolicy: Always
+          name: queue
+          resources: {}
+          envFrom:
+            - secretRef:
+                name: backend-env
+          env:
+            - name: QUEUE
+              value: default,attachments,media,translations,matchmaking,experience,seo,hashtags,prerender,crypto,daily_tasks
+            # This is needed to detect when backend-env changed
+            - name: BACKEND_ENV_SECRET_HASH
+              value: {{ include (print $.Template.BasePath "/backend-env-secret.yaml") . | sha256sum }}
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: docker-registry-auth-data

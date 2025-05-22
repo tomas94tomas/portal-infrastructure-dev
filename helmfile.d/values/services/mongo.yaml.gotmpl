@@ -1,0 +1,16 @@
+users:
+  - name: ref+envsubst://${{ .Values.keyVault.prefix }}_MONGO_DB_USER
+    password: ref+envsubst://${{ .Values.keyVault.prefix }}_MONGO_DB_PASSWORD
+    database: ref+envsubst://${{ .Values.keyVault.prefix }}_MONGO_DB_NAME
+  - name: prerender
+    password: ref+envsubst://${{ .Values.keyVault.prefix }}_MONGO_DB_PASSWORD
+    database: prerender
+    roles:
+      - name: listCollections
+        db: prerender
+      - name: dbOwner
+        db: prerender
+
+name: {{ .Values.mongo.server_name }}
+
+namespace: {{ .Values.mongo.namespace }}

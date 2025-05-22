@@ -1,0 +1,10 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: frontend-append-url
+spec:
+  plugin:
+    traefik-query-append-url:
+      QueryHost: {{ .Values.hostnames.frontend }}
+      QueryParamName: url
+      QueryScheme: https

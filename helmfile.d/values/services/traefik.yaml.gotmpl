@@ -1,0 +1,183 @@
+  image:
+    tag: v2.11.0
+
+  ports:
+    traefik:
+      port: 9000
+      expose: false
+      exposedPort: 9000
+      protocol: TCP
+      exposeInternal: false
+    web:
+      exposedPort: 80
+      expose: true
+      port: 8000
+      protocol: TCP
+      exposeInternal: false
+    websecure:
+      port: 8443
+      exposedPort: 443
+      expose: true
+      http3:
+        enabled: false
+      protocol: TCP
+      exposeInternal: false
+      tls:
+        enabled: true
+    web-insecure:
+      exposedPort: 9001
+      expose: true
+      port: 9001
+      protocol: TCP
+      exposeInternal: false
+    metrics:
+      port: 9100
+      expose: false
+      exposedPort: 9100
+      protocol: TCP
+      exposeInternal: false
+    mongodb:
+      exposedPort: 27017
+      port: 27017
+      expose: true
+    redis:
+      exposedPort: 6379
+      port: 6379
+      expose: true
+    mysql:
+      exposedPort: 3306
+      port: 3306
+      expose: true
+
+  accessLog: { }
+
+  logs:
+    general:
+      level: DEBUG
+    access:
+      enabled: {{ .Values.traefik.access_log.enabled }}
+
+  entryPoints:
+    web:
+      address: ":80"
+      priority: 100
+      http:
+        redirections:
+          entrypoint:
+            to: websecure
+            scheme: https
+
+    web-insecure:
+      address: ":9001"
+      priority: 10
+      http:
+
+    websecure:
+      address: ":443"
+      priority: 5
+
+    mongodb:
+      address: ":27017/tcp"
+
+    redis:
+      address: ":6379/tcp"
+
+    mysql:
+      address: ":3306/tcp"
+
+  additionalArguments:
+    - "--api.insecure=true"
+    - "--entrypoints.web.forwardedHeaders.insecure=true"
+    - "--entrypoints.websecure.forwardedHeaders.insecure=true"
+    - "--entrypoints.websecure-http3.forwardedHeaders.insecure=true"
+
+  experimental:
+    plugins:
+      traefik-query-append-url:
+        moduleName: "github.com/axyi/traefik-query-append-url"
+        version: "v0.0.9"
+
+  persistence:
+    enabled: false
+  #  volumeName: traefik-data
+  #  accessMode: ReadWriteMany
+
+  providers:
+    kubernetesCRD:
+      enabled: true
+      allowCrossNamespace: true
+      allowExternalNameServices: false
+      allowEmptyServices: false
+
+      # Array of namespaces to watch. If left empty, Traefik watches all namespaces.
+      namespaces: []
+
+    kubernetesIngress:
+      enabled: true
+      allowExternalNameServices: false
+      allowEmptyServices: false
+      namespaces: []
+
+  ingressRoute:
+    dashboard:
+      enabled: true
+      entryPoints:
+        - "traefik"
+        - "web-insecure"
+      middlewares:
+        - name: traefik-auth
+
+    healthcheck:
+      enabled: true
+      entryPoints:
+        - "traefik"
+        - "web-insecure"
+
+  extraObjects:
+    - apiVersion: v1
+      kind: Secret
+      metadata:
+        name: traefik-auth-secret
+      type: kubernetes.io/basic-auth
+      data:
+        username: {{ "ref+envsubst://$TRAEFIK_AUTH_USER" | fetchSecretValue | toString | b64enc | quote }}
+        password: {{ "ref+envsubst://$TRAEFIK_AUTH_PASSWORD" | fetchSecretValue | toString | b64enc | quote }}
+
+    - apiVersion: traefik.io/v1alpha1
+      kind: Middleware
+      metadata:
+        name: traefik-auth
+      spec:
+        basicAuth:
+          secret: traefik-auth-secret
+          removeHeader: true
+          realm: Traefik for Breach.gg
+
+    - apiVersion: traefik.io/v1alpha1
+      kind: Middleware
+      metadata:
+        name: compress
+      spec:
+        compress:
+          excludedContentTypes:
+            - text/event-stream
+            - image/jpeg
+            - image/png
+            - image/gif
+            - image/svg+xml
+            - audio/mpeg
+            - video/mp4
+            - video/x-msvideo
+            - application/x-msdownload
+            - application/zip
+            - application/x-rar-compressed
+            - application/x-tar
+          minResponseBodyBytes: 1024
+
+  service:
+    spec:
+      externalTrafficPolicy: Local
+    annotations:
+      io.kompose.network/system: "true"
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+

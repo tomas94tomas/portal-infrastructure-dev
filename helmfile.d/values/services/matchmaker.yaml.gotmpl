@@ -1,0 +1,57 @@
+container:
+  tag: "{{ .Values.container.tag }}"
+  registry:
+    name: "{{ .Values.container.registries.gitlab.server }}"
+    email: "{{ .Values.container.registries.gitlab.email }}"
+    username: "{{ requiredEnv .Values.container.registries.gitlab.username_from_env }}"
+    password: "{{ requiredEnv .Values.container.registries.gitlab.password_from_env }}"
+  # Defines short image names and digest
+  images:
+    {{ $items := dict -}}
+    {{- $envName := .Environment.Name -}}
+    {{ $imageTpl := printf "%%s:%s" .Values.container.tag}}
+    {{- range $type, $shortImageName := .Values.container.images.matchmaker -}}
+    {{- $fullImageName := (printf $imageTpl $shortImageName) -}}
+    {{- $diggest := exec "../../../tools/docker/digest.sh" (list $fullImageName $envName) -}}
+    {{- $meta := dict "digest" $diggest "full_name" $fullImageName -}}
+    {{- $items = merge $items (dict $type (dict "name" $shortImageName "meta" $meta)) -}}
+    {{- end -}}
+    {{ $items | toYaml | nindent 4 }}
+
+test: {{ .Environment.Name }}
+
+env:
+  INFO_CHANNEL: matchmaker-info
+  STEAM_LOGIN: https://steamcommunity.com/openid/login
+  DB_PORT: 3306
+  DB_PORT_PRICES: 3306
+  BREACHGG_DISCORD_INVITE: "https://discord.gg/breachgg"
+  BREACH_CLOSE_QUEUE: "https://{{ .Values.hostnames.breach.backend }}/api/v1/matchmaking-queue/discord/close?queue_id="
+  BREACH_GAME_QUEUE: "https://{{ .Values.hostnames.breach.backend }}/api/v1/matchmaking-queue/discord?game_id="
+  BREACH_GAMES_API: "https://{{ .Values.hostnames.breach.backend }}/api/v1/games"
+  BREACH_GET_ALL_QUEUES: "https://{{ .Values.hostnames.breach.backend }}/api/v1/matchmaking-queue/discord/all"
+  BREACH_JOIN_QUEUE: "https://{{ .Values.hostnames.breach.backend }}/api/v1/matchmaking-queue/discord"
+  BREACH_LEAVE_QUEUE: "https://{{ .Values.hostnames.breach.backend }}/api/v1/matchmaking-queue/discord"
+  BREACH_LOGIN: "https://{{ .Values.hostnames.breach.backend }}/api/v1/auth/login"
+  BREACH_REGISTER: "https://{{ .Values.hostnames.breach.backend }}/api/v1/auth/register"
+  STEAM_REDIRECT: https://{{ .Values.hostnames.discord_steam }}/
+  RIOT_API_KEY: ref+envsubst://$RIOT_API_KEY
+  TOPGG_MATCHMAKER_TOKEN: ref+envsubst://$TOPGG_MACHMAKER_TOKEN
+  DC_MATCHMAKING_TOKEN: ref+envsubst://$DATA_DC_MATCHMAKING_TOKEN
+  SENTRY: ref+envsubst://$BOT_SENTRY
+  DB_HOST_PRICES: ref+envsubst://$DATA_DB_BOT_HOST
+  DB_PASSWORD_PRICES: ref+envsubst://$DATA_DB_BOT_PASSWORD
+  DB_USERNAME_PRICES: ref+envsubst://$DATA_DB_BOT_USERNAME
+  DB_DATABASE_PRICES: games_pricing
+  DB_HOST: ref+envsubst://$DATA_DB_HOST
+  DB_PASSWORD: ref+envsubst://$DATA_DB_PASS
+  DB_USERNAME: ref+envsubst://$DATA_DB_USER #/2141a8d9f06c4629a9779ba8064fd2f8
+  DB_DATABASE: "discord_matchmaker"
+  APPLICATION_ID: ref+envsubst://${{ .Values.keyVault.prefix }}_MATCHMAKER_APPLICATION_ID
+  BREACH_BOT_NAME: ref+envsubst://${{ .Values.keyVault.prefix }}_MATCHMAKER_BREACH_BOT_NAME
+  BREACH_BOT_PASSWORD: ref+envsubst://${{ .Values.keyVault.prefix }}_MATCHMAKER_BREACH_BOT_PASSWORD
+  TMP_VOICE_CHANNEL: ref+envsubst://${{ .Values.keyVault.prefix }}_MATCHMAKER_TMP_VOICE_CHANNEL
+  TMP_CHANNEL_CATEGORY: ref+envsubst://${{ .Values.keyVault.prefix }}_MATCHMAKER_TMP_CHANNEL_CATEGORY
+  MATCHMAKER_VOTE_TOPGG: ref+envsubst://${{ .Values.keyVault.prefix }}_MATCHMAKER_VOTE_TOPGG
+  GUILDS_LIST: ref+envsubst://${{ .Values.keyVault.prefix }}_MATCHMAKER_GUILDS_LIST
+  GUILD: ref+envsubst://${{ .Values.keyVault.prefix }}_MATCHMAKER_GUILD

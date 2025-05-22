@@ -1,0 +1,89 @@
+environments:
+  production:
+    values:
+      - ./values/environments/global.yaml
+      - ./values/environments/production.yaml
+  development:
+    values:
+      - ./values/environments/global.yaml
+      - ./values/environments/development.yaml
+
+---
+
+repositories:
+  - name: traefik
+    url: https://helm.traefik.io/traefik
+
+  - name: jetstack
+    url: https://charts.jetstack.io
+
+  - name: mongo
+    url: https://mongodb.github.io/helm-charts
+
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+
+  - name: elastic
+    url: https://helm.elastic.co
+
+releases:
+
+  - name: elasticsearch
+    namespace: elasticsearch
+    chart: elastic/elasticsearch
+    version: 8.5.1
+    values:
+      - ./values/services/elasticsearch.yaml.gotmpl
+
+  - name: traefik
+    chart: traefik/traefik
+    version: 26.0.0
+    namespace: kube-system
+    values:
+      - ./values/services/traefik.yaml.gotmpl
+    labels:
+      cert-manager.io/disable-validation: "true"
+
+  - name: cert-manager
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    version: v1.15.0
+    values:
+      - ./values/services/cert-manager.yaml.gotmpl
+
+  - name: mysql
+    namespace: mysql
+    chart: ../charts/mysql
+    values:
+      - ./values/services/mysql.yaml.gotmpl
+
+  - name: mongo
+    chart: ../charts/mongo
+    namespace: mongodb
+    values:
+      - ./values/services/mongo.yaml.gotmpl
+
+  - name: redis
+    namespace: redis
+    chart: ../charts/redis
+    values:
+      - ./values/services/redis.yaml.gotmpl
+
+  - name: prerender
+    chart: ../charts/prerender
+    namespace: prerender
+    values:
+      - ./values/services/prerender.yaml.gotmpl
+
+  - name: breachgg
+    chart: ../charts/breachgg
+    namespace: default
+    values:
+      - ./values/services/breachgg.yaml.gotmpl
+
+  - name: matchmaker
+    chart: ../charts/matchmaker
+    namespace: matchmaker
+    condition: matchmaker.enabled
+    values:
+      - ./values/services/matchmaker.yaml.gotmpl

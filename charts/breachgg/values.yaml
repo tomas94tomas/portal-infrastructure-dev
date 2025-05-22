@@ -1,0 +1,58 @@
+# Default values for app.
+# This is a YAML-formatted file.
+
+hostnames:
+  socket: ""
+  frontend: ""
+  backend: ""
+
+container:
+  tag: dev
+  # Defines short image names and some meta information
+  images:
+    backend:
+      name: backend-api-system-nginx-and-php
+      meta:
+    frontend:
+      name: frontend
+      meta:
+    cron:
+      name: backend-api-system-cron
+      meta:
+    queue:
+      name: backend-api-system-queue
+      meta:
+    socket:
+      name: backend-api-system-socket
+      meta:
+  registry:
+    name: "proggcontreg01.azurecr.io"
+    email: "support@breach.gg"
+    username: ""
+    password: ""
+    resourceGroup: "Breach-Backgroud"
+
+kubernetes:
+  resourceGroup: ""
+  name: ""
+  clientId: ""
+
+env:
+  # key values for env variables for frontend f.e. APP_NAME: breach.gg
+  frontend: []
+
+  # key values for env variables for backend f.e. APP_NAME: breach.gg
+  backend: []
+
+certificate:
+  email: support@breach.gg
+  server: https://acme-staging-v02.api.letsencrypt.org/directory
+  issuerName: lets-encrypt-http-issuer
+
+prerender:
+  # namespace where prerender service is running
+  namespace: prerender
+  # extensions that will be skipped for prerendering
+  skippedExtensions: []
+  # user agents that are used for identification if that needs to be prerendered
+  userAgents: []

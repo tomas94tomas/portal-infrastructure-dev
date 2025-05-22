@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: cron
+  name: cron
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: cron
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        io.kompose.network/system: "true"
+        io.kompose.service: cron
+    spec:
+      containers:
+        - image: "{{ include "docker.imageUrl" (dict "container" .Values.container "type" "cron") }}"
+          imagePullPolicy: Always
+          name: cron
+          resources: {}
+          envFrom:
+            - secretRef:
+                name: backend-env
+          env:
+            - name: QUEUE
+              value: default
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: docker-registry-auth-data

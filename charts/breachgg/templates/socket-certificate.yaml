@@ -1,0 +1,10 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: socket-cert
+spec:
+  secretName: socket-crt
+  issuerRef:
+    name: {{ .Values.certificate.issuerName }}
+  dnsNames:
+    - "{{ .Values.hostnames.socket }}"

@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.certificate.issuerName }}
+spec:
+  acme:
+    email: {{ .Values.certificate.email }}
+    server: {{ .Values.certificate.server }}
+    privateKeySecretRef:
+      name: breachgg-letsencrypt-cert
+    solvers:
+      - http01:
+          ingress:
+            class: traefik

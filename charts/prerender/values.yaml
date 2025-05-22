@@ -1,0 +1,19 @@
+container:
+  tag: latest
+  # Defines short image names and some meta information
+  images:
+    prerender:
+      name: portal-prerender-alpine
+      meta:
+  registry:
+    name: "proggcontreg01.azurecr.io"
+    email: "support@breach.gg"
+    username: ""
+    password: ""
+    resourceGroup: "Breach-Backgroud"
+
+env:
+  # URI For MongoDB
+  MONGOLAB_URI: mongodb://admin:admin@mongo.internal/admin
+  # how long page will be cached
+  PAGE_TTL: 31622400

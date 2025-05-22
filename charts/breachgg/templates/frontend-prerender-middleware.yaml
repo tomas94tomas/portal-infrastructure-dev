@@ -1,0 +1,10 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: frontend-prerender
+spec:
+  chain:
+    middlewares:
+      - name: frontend-append-url
+      - name: prerender-replace-path
+        namespace: {{ .Values.prerender.namespace }}

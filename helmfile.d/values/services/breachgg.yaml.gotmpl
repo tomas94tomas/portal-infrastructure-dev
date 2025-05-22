@@ -1,0 +1,109 @@
+container:
+  tag: "{{ .Values.container.tag }}"
+  registry:
+    name: "{{ .Values.container.registries.gitlab.server }}"
+    email: "{{ .Values.container.registries.gitlab.email }}"
+    username: "{{ requiredEnv .Values.container.registries.gitlab.username_from_env }}"
+    password: "{{ requiredEnv .Values.container.registries.gitlab.password_from_env }}"
+  # Defines short image names and digest
+  images:
+    {{ $items := dict -}}
+    {{- $envName := .Environment.Name -}}
+    {{ $imageTpl := printf "%%s:%s" .Values.container.tag}}
+    {{- range $type, $shortImageName := .Values.container.images.breachgg -}}
+      {{- $fullImageName := (printf $imageTpl $shortImageName) -}}
+      {{- $diggest := exec "../../../tools/docker/digest.sh" (list $fullImageName $envName) -}}
+      {{- $meta := dict "digest" $diggest "full_name" $fullImageName -}}
+      {{- $items = merge $items (dict $type (dict "name" $shortImageName "meta" $meta)) -}}
+    {{- end -}}
+    {{ $items | toYaml | nindent 4 }}
+
+certificate:
+  email: "{{ .Values.certificate.email }}"
+  server: "{{ .Values.certificate.server }}"
+
+hostnames: {{- range $type, $hostname := .Values.hostnames.breach }}
+  {{ $type }}: "{{ $hostname }}"
+  {{- end }}
+
+prerender:
+  namespace: {{ .Values.prerender.namespace }}
+  skippedExtensions:
+    {{ .Values.prerender.skippedExtensions | toYaml | nindent 4 }}
+  userAgents:
+    {{ .Values.prerender.userAgents | toYaml | nindent 4 }}
+
+# If key is fetched from keystore value is described as ref+envsubst://$KEY_TO_FETCH
+env:
+  backend:
+    PRERENDER_ENABLED: 1
+    # noinspection HttpUrlsUsage
+    PRERENDER_URL: {{ (printf "http://%s.%s.svc.cluster.local:3000/render" .Values.prerender.server_name .Values.prerender.namespace ) }}
+    COMPOSER_ALLOW_SUPERUSER: 1
+    APP_URL: https://{{ .Values.hostnames.breach.backend }}/
+    LARAVEL_WEBSOCKETS_PORT: 443
+    LARAVEL_WEBSOCKETS_HOST: {{ .Values.hostnames.breach.socket }}
+    LARAVEL_WEBSOCKETS_SCHEME: https
+    DB_HOST: {{ (printf "%s.%s.svc.cluster.local" .Values.mysql.server_name .Values.mysql.namespace ) }}
+    DB_USERNAME: ref+envsubst://${{ .Values.keyVault.prefix }}_SQL_DB_USER
+    DB_PASSWORD: ref+envsubst://${{ .Values.keyVault.prefix }}_SQL_DB_PASS
+    DB_DATABASE: ref+envsubst://$SQL_DB_NAME
+    REDIS_HOST: {{ (printf "%s.%s.svc.cluster.local" .Values.redis.server_name .Values.redis.namespace ) }}
+    REDIS_PASSWORD: ref+envsubst://${{ .Values.keyVault.prefix }}_REDIS_PASS
+    MONGO_DB_DATABASE: ref+envsubst://${{ .Values.keyVault.prefix }}_MONGO_DB_NAME
+    MONGO_DB_URI: {{
+      printf "mongodb://%s:%s@%s:27017/%s?replicaSet=%s&ssl=false"
+      ((printf "ref+envsubst://$%s_MONGO_DB_USER" .Values.keyVault.prefix) | fetchSecretValue)
+      (((printf "ref+envsubst://$%s_MONGO_DB_PASSWORD" .Values.keyVault.prefix) | fetchSecretValue) | urlquery)
+      (printf "%s-0.%s-svc.%s.svc.cluster.local" .Values.mongo.server_name .Values.mongo.server_name .Values.mongo.namespace )
+      ((printf "ref+envsubst://$%s_MONGO_DB_NAME" .Values.keyVault.prefix) | fetchSecretValue)
+      .Values.mongo.server_name
+    }}
+    ELASTICSEARCH_HOST: https://{{ printf "%s-master.%s.svc.cluster.local" .Values.elasticsearch.server_name .Values.elasticsearch.namespace }}:9200
+    ELASTICSEARCH_USER: "elastic"
+    ELASTICSEARCH_PASSWORD: ref+envsubst://${{ .Values.keyVault.prefix }}_ELASTICSEARCH_PASS
+    FRONT_APP_URL: https://{{ .Values.hostnames.breach.frontend }}/
+    AZURE_CDN_DOMAIN: {{ .Values.hostnames.breach.cdn }}
+    APP_KEY: ref+envsubst://$APP_KEY
+    AWS_ACCESS_KEY_ID: ref+envsubst://$AWS_ACCESS_KEY_ID
+    AWS_SECRET_KEY: ref+envsubst://$AWS_SECRET_KEY
+    TWITCH_CLIENT_ID: ref+envsubst://$TWITCH_CLIENT_ID
+    TWITCH_CLIENT_SECRET: ref+envsubst://$TWITCH_CLIENT_SECRET
+    DISCORD_CLIENT_ID: ref+envsubst://$DISCORD_CLIENT_ID
+    DISCORD_CLIENT_SECRET: ref+envsubst://$DISCORD_CLIENT_SECRET
+    GIPHY_API_KEY: ref+envsubst://$GIPHY_API_KEY
+    GOOGLE_CLIENT_ID: ref+envsubst://$GOOGLE_CLIENT_ID
+    GOOGLE_CLIENT_SECRET: ref+envsubst://$GOOGLE_CLIENT_SECRET
+    GOOGLE_TRANSLATE_API_KEY: ref+envsubst://$GOOGLE_TRANSLATE_API_KEY
+    OPEN_AI_KEY: ref+envsubst://$OPEN_AI_KEY
+    AZURE_VISION_SUBSCRIPTION_KEY: ref+envsubst://$AZURE_VISION_SUBSCRIPTION_KEY
+    AZURE_VISION_ENDPOINT: ref+envsubst://$AZURE_VISION_ENDPOINT
+    PUSHER_APP_ID: {{ .Values.hostnames.breach.frontend }}
+    PUSHER_APP_KEY: ref+envsubst://$PUSHER_APP_KEY
+    PUSHER_APP_SECRET: ref+envsubst://$PUSHER_APP_SECRET
+    MAIL_HOST: ref+envsubst://$MAIL_HOST
+    MAIL_USERNAME: ref+envsubst://$MAIL_USER
+    MAIL_PASSWORD: ref+envsubst://$MAIL_PASS
+    MAILERSEND_API_KEY: ref+envsubst://$MAIL_API_KEY
+    STEAM_AUTH_PRIVATE_KEY: ref+envsubst://$STEAM_AUTH_PRIVATE_KEY
+    SENTRY_LARAVEL_DSN: ref+envsubst://$SENTRY_LARAVEL_DNS
+    SENTRY_TRACES_SAMPLE_RATE: ref+envsubst://${{ .Values.keyVault.prefix }}_SENTRY_TRACES_SAMPLE_RATE
+    SENTRY_PROFILES_SAMPLE_RATE: ref+envsubst://${{ .Values.keyVault.prefix }}_SENTRY_PROFILES_SAMPLE_RATE
+    SENTRY_TRACE_QUEUE_ENABLED: ref+envsubst://${{ .Values.keyVault.prefix }}_SENTRY_TRACE_QUEUE_ENABLED
+    PASSPORT_PRIVATE_KEY: ref+envsubst://${{ .Values.keyVault.prefix }}_PASSWORD_PRIVATE_KEY
+    PASSPORT_PUBLIC_KEY: ref+envsubst://${{ .Values.keyVault.prefix }}_PASSWORD_PUBLIC_KEY
+    {{- .Values.env.backend | toYaml | nindent 4 }}
+  frontend:
+    INTERNAL_API_URL: https://{{ .Values.hostnames.breach.backend }}/api/v1/
+    EXTERNAL_API_URL: https://{{ .Values.hostnames.breach.backend }}/api/v1/
+    CDN_URL: https://{{ .Values.hostnames.breach.backend }}/api/v1/cdn/
+    SOCKET_URL: wss://{{ .Values.hostnames.breach.socket }}
+    FRONTEND_URL: https://{{ .Values.hostnames.breach.frontend }}/
+    GOOGLE_CLIENT_ID: ref+envsubst://$GOOGLE_CLIENT_ID
+    DISCORD_CLIENT_ID: ref+envsubst://$DISCORD_CLIENT_ID
+    TWITCH_CLIENT_ID: ref+envsubst://$TWITCH_CLIENT_ID
+    SENTRY_DSN: ref+envsubst://$FRONTEND_SENTRY
+    GOOGLE_ANALYTICS_KEY: ref+envsubst://$GOOGLE_ANALYTICS_KEY
+    SMARTLOOK_KEY: ref+envsubst://$SMARTLOOK_KEY
+    PUSHER_APP_KEY: ref+envsubst://$PUSHER_APP_KEY
+    {{- .Values.env.frontend | toYaml | nindent 4 }}

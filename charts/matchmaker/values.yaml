@@ -1,0 +1,16 @@
+# All environment variables
+env: {}
+
+container:
+  tag: latest
+  # Defines short image names and some meta information
+  images:
+    discord:
+      name: system-discord-matchmaker
+      meta:
+  registry:
+    name: "proggcontreg01.azurecr.io"
+    email: "support@breach.gg"
+    username: ""
+    password: ""
+    resourceGroup: "Breach-Backgroud"

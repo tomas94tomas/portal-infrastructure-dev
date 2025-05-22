@@ -1,0 +1,126 @@
+name: Deploy
+
+on:
+#  repository_dispatch:
+#    types: [ deploy ]
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - master
+#      - dev
+#  pull_request:
+#    branches:
+#      - master
+#      - dev
+#    types: [ closed ]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+
+jobs:
+  collect_info:
+    name: Collects & process basic info
+    runs-on: ubuntu-latest
+    outputs:
+      github_environment: "${{ steps.detect_env.outputs.environment }}"
+    steps:
+      - name: Detect target branch
+        id: detect_target_branch
+        shell: bash
+        run: |
+          FULL_BRANCH="unknown"
+          if [[ $GITHUB_EVENT_NAME == 'pull_request' ]]; then
+            FULL_BRANCH="${{ github.event.pull_request.base.ref }}"
+          elif [[ $GITHUB_EVENT_NAME == 'repository_dispatch' ]]; then
+            FULL_BRANCH="${{ github.event.client_payload.target_branch }}"
+          else
+            FULL_BRANCH="$GITHUB_REF"
+          fi;
+          echo "branch=${FULL_BRANCH##*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Detect environment
+        id: detect_env
+        run: |
+          if [[ "${{ steps.detect_target_branch.outputs.branch }}" == 'master' ]]; then
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ steps.detect_target_branch.outputs.branch }}" == 'dev' ]]; then
+            echo "environment=development" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=unknown" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Writing info about workflow that triggered this one
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          echo "Job was triggered by ${{ github.event.client_payload.base_workflow_url }}" >> $GITHUB_STEP_SUMMARY
+
+  deploy:
+    name: Deploy
+
+    runs-on: ubuntu-latest
+
+    needs:
+      - collect_info
+
+    if: needs.collect_info.outputs.github_environment != 'unknown'
+
+    environment:
+      name: ${{ needs.collect_info.outputs.github_environment }}
+      url: ${{ vars.DEPLOY_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install kubelogin
+        shell: bash
+        run: ./tools/external/install-kubelogin.sh
+
+      - name: Getting Kubernetes cluster info from helmfile...
+        id: kubernetes_info
+        shell: bash
+        run: |
+          RESOURCE_GROUP=$(./tools/helmfile/get-var.sh ${{ vars.HELMFILE_ENVIRONMENT }} kubernetes.resourceGroup)
+          NAME=$(./tools/helmfile/get-var.sh ${{ vars.HELMFILE_ENVIRONMENT }} kubernetes.name)
+          echo "resource_group=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: >-
+            {
+              "clientId":"${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId":"${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.AZURE_DOCKER_REGISTRY_HOST }}
+          username: ${{ secrets.AZURE_DOCKER_REGISTRY_USER }}
+          password: ${{ secrets.AZURE_DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Set cluster subscription
+        run: az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Download cluster credentials
+        run: az aks get-credentials --resource-group ${{ steps.kubernetes_info.outputs.resource_group }} --name ${{ steps.kubernetes_info.outputs.name }} --overwrite-existing
+
+      - name: Use kubelogin plugin for authentication
+        run: kubelogin convert-kubeconfig -l azurecli
+
+      - name: Updating helm plugins...
+        shell: bash
+        run: ./tools/external/update-helm-plugins.sh
+
+      - name: Deploy using Helmfile
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        shell: bash
+        run: ./update.sh ${{ vars.HELMFILE_ENVIRONMENT }}

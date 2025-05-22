@@ -1,0 +1,34 @@
+container:
+  tag: "{{ .Values.container.tag }}"
+  registry:
+    name: "{{ .Values.container.registries.gitlab.server }}"
+    email: "{{ .Values.container.registries.gitlab.email }}"
+    username: "{{ requiredEnv .Values.container.registries.gitlab.username_from_env }}"
+    password: "{{ requiredEnv .Values.container.registries.gitlab.password_from_env }}"
+  # Defines short image names and digest
+  images:
+    {{ $items := dict -}}
+    {{- $envName := .Environment.Name -}}
+    {{ $imageTpl := printf "%%s:%s" .Values.container.tag}}
+    {{- range $type, $shortImageName := .Values.container.images.prerender -}}
+    {{- $fullImageName := (printf $imageTpl $shortImageName) -}}
+    {{- $diggest := exec "../../../tools/docker/digest.sh" (list $fullImageName $envName) -}}
+    {{- $meta := dict "digest" $diggest "full_name" $fullImageName -}}
+    {{- $items = merge $items (dict $type (dict "name" $shortImageName "meta" $meta)) -}}
+    {{- end -}}
+    {{ $items | toYaml | nindent 4 }}
+
+test: {{ .Environment.Name }}
+
+env:
+  # URI For MongoDB
+  MONGOLAB_URI: {{
+    printf "mongodb://%s:%s@%s:27017/%s?replicaSet=%s&ssl=false"
+    "prerender"
+    (((printf "ref+envsubst://$%s_MONGO_DB_PASSWORD" .Values.keyVault.prefix) | fetchSecretValue) | urlquery)
+    (printf "%s-0.%s-svc.%s.svc.cluster.local" .Values.mongo.server_name .Values.mongo.server_name .Values.mongo.namespace )
+    "prerender"
+    .Values.mongo.server_name
+  }}
+  # how long page will be cached
+  PAGE_TTL: "31622400"

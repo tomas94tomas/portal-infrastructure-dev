@@ -1,0 +1,3 @@
+redis:
+  auth:
+    password: ref+envsubst://${{ .Values.keyVault.prefix }}_REDIS_PASS

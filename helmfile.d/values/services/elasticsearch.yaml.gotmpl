@@ -1,0 +1,22 @@
+secret:
+  enabled: true
+  password: ref+envsubst://${{ .Values.keyVault.prefix }}_ELASTICSEARCH_PASS
+
+esJavaOpts: "-Xms750m -Xmx750m"
+
+volumeClaimTemplate:
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 30Gi
+
+persistence:
+  enabled: true
+  labels:
+    # Add default labels for the volumeClaimTemplate of the StatefulSet
+    enabled: false
+  annotations: { }
+
+httpPort: 9200
+transportPort: 9300
+protocol: https

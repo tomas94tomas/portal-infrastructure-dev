@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration.{{ now.Format "2006-01-02-15-04-05" }}
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        io.kompose.network/system: "true"
+        breachgg.jobs.type: migration
+    spec:
+      containers:
+        - image: "{{ include "docker.imageUrl" (dict "container" .Values.container "type" "queue" "forceTag" true) }}"
+          imagePullPolicy: Always
+          name: migration-job
+          resources: {}
+          envFrom:
+            - secretRef:
+                name: backend-env
+          command:
+            - php
+            - /src/artisan
+            - migrate
+            - "-n"
+            - "--step"
+            - "--force"
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: docker-registry-auth-data
+  backoffLimit: 1

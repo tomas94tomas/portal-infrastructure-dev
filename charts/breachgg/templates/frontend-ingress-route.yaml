@@ -1,0 +1,47 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: frontend
+  annotations:
+    cert-manager.io/issuer: "{{ .Values.certificate.issuerName }}"
+spec:
+  entryPoints:
+    - websecure
+    - web
+  routes:
+    - match: |-
+        Host(`{{ .Values.hostnames.frontend }}`) &&
+        HeadersRegexp(`User-Agent`, `(?i).*({{ join "|" .Values.prerender.userAgents }}).*`) &&
+        !Path(`/{path:.*\.({{ join "|" .Values.prerender.skippedExtensions }})$}`)
+      kind: Rule
+      priority: 65554
+      middlewares:
+        - name: frontend-prerender
+      services:
+        - name: prerender
+          namespace: {{ .Values.prerender.namespace }}
+          port: 80
+    - match: Host(`{{ .Values.hostnames.frontend }}`) || Host(`www.{{ .Values.hostnames.frontend }}`)
+      kind: Rule
+      priority: 65553
+      services:
+        - name: frontend
+          port: 80
+      middlewares:
+        - name: frontend-no-www-http
+        - name: frontend-no-www-https
+        - name: compress
+          namespace: kube-system
+    - match: HostRegexp(`{subdomain:.+}.{{ .Values.hostnames.frontend }}`)
+      kind: Rule
+      priority: 1
+      services:
+        - name: noop@internal  # Traefik's built-in service for returning 404
+          kind: TraefikService
+      middlewares:
+        - name: frontend-not-found
+  tls:
+    secretName: frontend-crt
+    domains:
+      - main: "{{ .Values.hostnames.frontend }}"
+      - any_subdomain: "*.{{ .Values.hostnames.frontend }}"
